@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTokenPrices } from '../features/currency-swap/hooks/useTokenPrices';
-import { computeOutput } from '../features/currency-swap/utils/computeOutput';
+import {
+    computeOutput,
+    formatInput,
+} from '../features/currency-swap/utils/precision';
 import CustomDropdown from '../features/currency-swap/components/CustomDropdown';
 import SwapButton from '../features/currency-swap/components/SwapButton';
 
@@ -37,9 +40,10 @@ export default function CurrencySwap() {
 
     const fromCurrency = tokens.find((t) => t.id === from);
     const to = watch('to') || tokens[2]?.id;
-    console.log('To selected:', to);
+
     const toCurrency = tokens.find((t) => t.id === to);
-    const amount = parseFloat(watch('amount') || '0'); // parseFloat để chuyển string sang number
+    const amount = parseFloat(watch('amount')); // parseFloat để chuyển string sang number
+
     const output = computeOutput(from, to, amount, tokens);
 
     const onSubmit = async (data: any) => {
@@ -110,11 +114,17 @@ export default function CurrencySwap() {
                                 placeholder="0.00"
                                 {...register('amount', {
                                     required: 'Amount is required',
-                                    min: {
-                                        value: 0.0001,
-                                        message: 'Enter a valid amount',
+                                    max: {
+                                        value: 1e12,
+                                        message: 'Amount was too large',
                                     },
                                 })}
+                                onChange={(e) => {
+                                    const sanitizedValue = formatInput(
+                                        e.target.value
+                                    );
+                                    setValue('amount', sanitizedValue);
+                                }}
                                 className="w-0 relative bg-[var(--colors-background)] text-[var(--colors-text)] flex-1 whitespace-nowrap outline-none mt-1 px-2 pb-2 text-[24px] font-[600] text-right"
                             />
 
@@ -132,7 +142,11 @@ export default function CurrencySwap() {
                                 disabled={to ? [to] : []}
                             />
                         </div>
-                        <div className="absolute right-0 bottom-[12px] bg-transparent]">
+                        <div
+                            className={`absolute right-0 bottom-[12px] bg-transparent ${
+                                amount >= 0 ? '' : 'hidden'
+                            }`}
+                        >
                             <div className="flex justify-end mr-6">
                                 <div className="text-[var(--colors-textSubtle)] font-normal leading-[1.5] whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">
                                     ~
@@ -191,6 +205,7 @@ export default function CurrencySwap() {
                                 placeholder="0.00"
                                 value={output > 0 ? output.toFixed(4) : ''}
                                 onChange={() => {}}
+                                readOnly
                                 className="w-0 relative bg-[var(--colors-background)] text-[var(--colors-text)] flex-1 whitespace-nowrap outline-none mt-1 px-2 pb-2 text-[24px] font-[600] text-right"
                             />
 
@@ -215,7 +230,11 @@ export default function CurrencySwap() {
                                 </p>
                             )}
                         </div>
-                        <div className="absolute right-0 bottom-[12px] bg-transparent]">
+                        <div
+                            className={`absolute right-0 bottom-[12px] bg-transparent ${
+                                amount >= 0 ? '' : 'hidden'
+                            }`}
+                        >
                             <div className="flex justify-end mr-6">
                                 <div className="text-[var(--colors-textSubtle)] font-normal leading-[1.5] whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">
                                     ~
@@ -235,7 +254,7 @@ export default function CurrencySwap() {
                     </div>
                 </div>
 
-                <div className="mt-6 text-sm">
+                <div className="mt-6 px-3 text-sm">
                     {/* ACTION */}
                     <button
                         type="submit"
